@@ -2,34 +2,49 @@ name: Build Titan Engine APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   workflow_dispatch:
+
+env:
+  NDK_VERSION: "25.2.9519653"
+  CMAKE_VERSION: "3.22.1"
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4 # تم التحديث للنسخة الرابعة
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
       - name: Setup JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v4 # تم التحديث للنسخة الرابعة
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
       - name: Build APK
         run: |
-          if [ ! -f "gradlew" ]; then gradle wrapper; fi
-          chmod +x gradlew
-          ./gradlew assembleDebug
+          # إنشاء الهيكل وضمان وجود الملفات الأساسية
+          mkdir -p app/src/main/cpp
+          [ -f "main.cpp" ] && cp main.cpp app/src/main/cpp/
+          [ -f "CMakeLists.txt" ] && cp CMakeLists.txt app/src/main/cpp/
+          
+          # تشغيل عملية البناء
+          chmod +x gradlew || gradle wrapper
+          ./gradlew assembleDebug --stacktrace
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4 # هذا هو الجزء الذي اقترحه GitHub (v4 بدلاً من v3)
         with:
           name: Titan-Engine-V1
           path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
           
